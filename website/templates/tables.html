@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Tables - MSY{% endblock %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='vendor/datatables/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <h1 class="h3 mb-4 text-gray-800">Tables</h1>
+
+    <div class="row">
+
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">All Menu Items by Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="itemsDataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Amount</th>
+                                    <th>Count</th>
+                                    <th>Avg. Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Inventory Restock Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped" id="inventoryDataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Ingredient</th>
+                                    <th>Avg. Monthly Usage</th>
+                                    <th>Monthly Shipment</th>
+                                    <th>Monthly Buffer</th>
+                                    <th>Status</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="{{ url_for('static', filename='vendor/datatables/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/dataTables.bootstrap4.min.js') }}"></script>
+
+<script>
+  // --- Helper to format numbers ---
+  function formatNumber(n) {
+    return n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  
+  // --- Top Items Table ---
+  var itemsData = {{ top_items_data|safe }};
+  
+  $('#itemsDataTable').DataTable({
+    data: itemsData,
+    columns: [
+      { data: 'Item Name' },
+      { 
+        data: 'Amount',
+        render: function(data, type, row) {
+          return (type === 'display') ? '$' + formatNumber(data) : data;
+        }
+      },
+      { 
+        data: 'Count',
+        render: function(data, type, row) {
+          return (type === 'display') ? formatNumber(data) + ' units' : data;
+        }
+      },
+      { 
+        data: 'Avg_Price',
+        render: function(data, type, row) {
+          return (type === 'display') ? '$' + (data).toFixed(2) : data;
+        }
+      }
+    ],
+    order: [[1, 'desc']], // Default sort by Amount
+    pageLength: 10 // Show 10 items per page
+  });
+
+  
+  // --- Inventory Restock Analysis Table ---
+  var inventoryData = {{ inventory_data|safe }};
+  
+  $('#inventoryDataTable').DataTable({
+    data: inventoryData,
+    columns: [
+      { data: 'Ingredient' },
+      { 
+        data: 'Avg_Monthly_Usage',
+        render: function(data, type, row) {
+            return (type === 'display') ? formatNumber(data) + ' ' + row.Unit : data;
+        }
+      },
+      { 
+        data: 'Monthly_Shipment',
+        render: function(data, type, row) {
+            return (type === 'display') ? formatNumber(data) + ' ' + row.Unit : data;
+        }
+      },
+      { 
+        data: 'Stock_Delta',
+        render: function(data, type, row) {
+            return (type === 'display') ? formatNumber(data) + ' ' + row.Unit : data;
+        }
+      },
+      { data: 'Status' },
+      // --- *** ADDED THIS NEW COLUMN *** ---
+      { data: 'Note' },
+      { data: 'Unit', visible: false } // Hide the unit column, we added it to the others
+    ],
+    order: [[3, 'asc']], // Default sort by Stock Delta (shows Low Stock first)
+    pageLength: 10,
+    
+    // --- NEW: Row Coloring ---
+    createdRow: function(row, data, dataIndex) {
+        if (data.Status === 'Low Stock') {
+            $(row).addClass('table-danger'); // Bootstrap red
+        } else if (data.Status === 'Surplus') {
+            $(row).addClass('table-warning'); // Bootstrap yellow
+        }
+    }
+  });
+
+</script>
+
+{% endblock %}
